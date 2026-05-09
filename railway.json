@@ -1,5 +1,11 @@
 {
   "build": {
-    "builder": "dockerfile"
+    "builder": "dockerfile",
+    "dockerfile": "./server/Dockerfile"
+  },
+  "deploy": {
+    "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port $PORT",
+    "restartPolicyMaxRetries": 5,
+    "restartPolicyWindow": 600
   }
 }
