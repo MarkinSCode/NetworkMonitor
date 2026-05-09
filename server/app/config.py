@@ -20,8 +20,6 @@ class Settings(BaseSettings):
     AGENT_SECRET: str = os.getenv("AGENT_SECRET", "agent-secret")
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     CORS_ORIGINS: List[str] = os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else ["*"]
-    if not DEBUG and SECRET_KEY == "dev-secret-key-change-in-production":
-        raise ValueError("Измени SECRET_KEY для production!")
     class Config:
         case_sensitive = True
         env_file = ".env"
