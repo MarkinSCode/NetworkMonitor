@@ -1,0 +1,59 @@
+.container { 
+    max-width: 1100px; 
+    margin: 0 auto; }
+.container h1 { 
+    color: var(--text-primary); }
+.filters { 
+    display: flex; 
+    gap: 10px; 
+    margin: 15px 0; 
+    flex-wrap: wrap; }
+.filters input { 
+    padding: 6px 10px; 
+    border: 1px solid var(--border-input); 
+    border-radius: 4px; 
+    background: var(--bg-input); 
+    color: var(--text-primary); 
+    font-size: 0.85em; }
+.tableContainer { 
+    background: var(--bg-card); 
+    border-radius: 8px; 
+    box-shadow: 0 2px 4px var(--shadow); 
+    overflow-x: auto; }
+.table { 
+    width: 100%; 
+    border-collapse: collapse; }
+.table th { 
+    background: var(--bg-secondary); 
+    color: var(--text-primary); 
+    padding: 10px 15px; 
+    font-size: 0.85em; 
+    text-align: left; }
+.table td { 
+    padding: 10px 15px; 
+    border-bottom: 1px solid var(--border); 
+    color: var(--text-primary); 
+    font-size: 0.85em; }
+.closeBtn { 
+    background: var(--danger); 
+    color: white; 
+    border: none; 
+    padding: 4px 10px; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    font-size: 0.8em; }
+.pagination { 
+    display: flex; 
+    justify-content: center; 
+    gap: 10px; 
+    margin-top: 15px; }
+.pagination button { 
+    padding: 6px 14px; 
+    border: none; 
+    background: var(--accent); 
+    color: white; 
+    border-radius: 4px; 
+    cursor: pointer; }
+.pagination button:disabled { 
+    background: var(--border); 
+    cursor: not-allowed; }
