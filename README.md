@@ -54,21 +54,6 @@
 
 Если используется другой ПК в локальной сети: http://(локальный ip):3000
 
-# База данных
-
-Если нужна БД, заходим по адресу http://localhost:5050 или http://(локальный ip):5050
-Email: admin@admin.com
-Password: admin
-Добавьте сервер (правый клик по Servers -> Register -> Server -> Connection):
-______________________________________
-Host name/address:      db
-Port            	    5432
-Maintenance database	monitoring_db
-Username	            postgres
-Password	            postgres
-______________________________________
-
-
 # Функции
 
 Мониторинг ПК в реальном времени — загрузка CPU, памяти, объема дисков для всей сети и для конкретных ПК;
