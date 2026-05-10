@@ -91,19 +91,15 @@ export const SettingsPage: React.FC = () => {
         <h3>Подключение</h3>
         <div className={styles.row}>
           <span className={styles.label}>Адрес сервера:</span>
-          <code>{config.serverIp}:{config.serverPort}</code>
+          <code>{config.apiUrl}</code>
         </div>
         <div className={styles.row}>
           <span className={styles.label}>Адрес фронтенда:</span>
-          <code>{config.serverIp}:{config.frontendPort}</code>
-        </div>
-        <div className={styles.row}>
-          <span className={styles.label}>Адрес БД:</span>
-          <code>{config.serverIp}:{config.pgadminPort}</code>
+          <code>{window.location.origin}</code>
         </div>
         <div className={styles.row}>
           <span className={styles.label}>Адрес для агентов:</span>
-          <code>ws://{config.serverIp}:{config.serverPort}/ws/agent</code>
+          <code>wss://{window.location.host}/ws/agent</code>
         </div>
       </div>
       <button onClick={saveSettings} className={styles.saveBtn}>
