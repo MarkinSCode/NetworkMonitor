@@ -2,33 +2,34 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Client } from '../../types';
 import { config } from '../../config';
 
-export const ComputerNode: React.FC<{ data: any; selected: boolean }> = (({ data, selected }) => {
+export const ComputerNode: React.FC<{ data: any; selected: boolean }> = ({ data, selected }) => {
   const [showPreview, setShowPreview] = useState(false);
   const [clientData, setClientData] = useState<Client | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [, forceUpdate] = useState(0);
 
-  // Загружаем данные при монтировании и обновляем каждые 30 секунд
-  useEffect(() => {
-    if (!data.clientId) return;
+useEffect(() => {
+  if (!data.clientId) return;
 
-    const fetchData = () => {
-      const token = localStorage.getItem('access_token');
-      fetch(`${config.apiUrl}/monitoring/clients/${data.clientId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+  const fetchData = () => {
+    const token = localStorage.getItem('access_token');
+    fetch(`${config.apiUrl}/monitoring/clients/${data.clientId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        setClientData(data);
+        forceUpdate(n => n + 1); // Принудительный ререндер
       })
-        .then(res => res.json())
-        .then(data => setClientData(data))
-        .catch(console.error);
-    };
+      .catch(console.error);
+  };
 
-    fetchData();
-    intervalRef.current = setInterval(fetchData, 30000);
+  fetchData();
+  const interval = setInterval(fetchData, 5000); // Каждые 5 секунд
 
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [data.clientId]);
+  return () => clearInterval(interval);
+}, [data.clientId]);
 
   const handleMouseEnter = () => {
     timerRef.current = setTimeout(() => setShowPreview(true), 300);
