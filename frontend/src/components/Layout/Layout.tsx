@@ -5,10 +5,11 @@ import { useAuth } from '../../hooks/useAuth';
 
 export const Layout: React.FC = () => {
   const { isAuthenticated } = useAuth();
+  
   return (
     <div>
       {isAuthenticated && <Header />}
-      <main style={{ padding: 20 }}>
+      <main style={{ padding: '20px', paddingTop: '80px' }}>
         <Outlet />
       </main>
     </div>
