@@ -6,30 +6,29 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = ({ data,
   const [showPreview, setShowPreview] = useState(false);
   const [clientData, setClientData] = useState<Client | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [, forceUpdate] = useState(0);
 
-useEffect(() => {
-  if (!data.clientId) return;
+  useEffect(() => {
+    if (!data.clientId) return;
 
-  const fetchData = () => {
-    const token = localStorage.getItem('access_token');
-    fetch(`${config.apiUrl}/monitoring/clients/${data.clientId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        setClientData(data);
-        forceUpdate(n => n + 1); // Принудительный ререндер
+    const fetchData = () => {
+      const token = localStorage.getItem('access_token');
+      fetch(`${config.apiUrl}/monitoring/clients/${data.clientId}`, {
+        headers: { Authorization: `Bearer ${token}` }
       })
-      .catch(console.error);
-  };
+        .then(res => res.json())
+        .then(data => {
+          setClientData(data);
+          forceUpdate(n => n + 1);
+        })
+        .catch(console.error);
+    };
 
-  fetchData();
-  const interval = setInterval(fetchData, 5000); // Каждые 5 секунд
+    fetchData();
+    const interval = setInterval(fetchData, 5000);
 
-  return () => clearInterval(interval);
-}, [data.clientId]);
+    return () => clearInterval(interval);
+  }, [data.clientId]);
 
   const handleMouseEnter = () => {
     timerRef.current = setTimeout(() => setShowPreview(true), 300);
@@ -47,11 +46,10 @@ useEffect(() => {
     return 'var(--success)';
   };
 
-  // Проверка актуальности метрик (не старше 2 минут)
   const isMetricsFresh = () => {
     if (!clientData?.latest_metrics?.timestamp) return false;
     const age = Date.now() - new Date(clientData.latest_metrics.timestamp).getTime();
-    return age < 120000; // 2 минуты
+    return age < 120000;
   };
 
   return (
@@ -158,4 +156,4 @@ useEffect(() => {
       )}
     </div>
   );
-});
+};
