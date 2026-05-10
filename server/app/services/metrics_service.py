@@ -95,7 +95,8 @@ class MetricsService:
         
         partitions = disks.get('partitions', system.get('disks', []))
         percents = [p.get('percent', 0) for p in partitions]
-        disk_used = sum(percents) / len(percents) if percents else 0
+        disk_percent = sum(percents) / len(percents) if percents else 0
+        disk_used = sum((p.get('used_gb', 0) for p in partitions))
         
         ram_total = memory.get('ram', {}).get('total_gb') or system.get('memory', {}).get('ram_total_gb') or 0
         ram_used = memory.get('ram', {}).get('used_gb') or system.get('memory', {}).get('ram_used_gb') or 0
