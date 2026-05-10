@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styles from './Reports.module.css';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { config } from '../../config';
 interface Report {
   id: number;
@@ -61,7 +62,7 @@ export const ReportsPage: React.FC = () => {
   };
 
   const totalPages = Math.ceil(total / limit);
-
+  if (isLoading) return <LoadingSpinner />;
   return (
     <div className={styles.container}>
       <h1>Отчёты о проблемах</h1>
