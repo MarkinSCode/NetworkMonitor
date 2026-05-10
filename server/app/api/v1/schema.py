@@ -81,4 +81,4 @@ async def save_schema(data: dict, db: Session = Depends(get_db), current_user: U
         ))
     
     db.commit()
-    return 0;
+    return {"message": "Схема сохранена"}
