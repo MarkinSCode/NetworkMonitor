@@ -98,8 +98,8 @@ export const SettingsPage: React.FC = () => {
           <code>{window.location.origin}</code>
         </div>
         <div className={styles.row}>
-          <span className={styles.label}>Адрес для агентов:</span>
-          <code>wss://{window.location.host}/ws/agent</code>
+          <span className={styles.label}>Адрес для агентов (WebSocket):</span>
+          <code>{config.apiUrl.replace(/^https?:/, 'wss:').replace('/api/v1', '/ws/agent')}</code>
         </div>
       </div>
       <button onClick={saveSettings} className={styles.saveBtn}>
