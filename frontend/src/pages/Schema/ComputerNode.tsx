@@ -6,6 +6,29 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ 
   const [showPreview, setShowPreview] = useState(false);
   const [clientData, setClientData] = useState<Client | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Загружаем данные при монтировании и обновляем каждые 30 секунд
+  useEffect(() => {
+    if (!data.clientId) return;
+
+    const fetchData = () => {
+      const token = localStorage.getItem('access_token');
+      fetch(`${config.apiUrl}/monitoring/clients/${data.clientId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => setClientData(data))
+        .catch(console.error);
+    };
+
+    fetchData();
+    intervalRef.current = setInterval(fetchData, 30000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [data.clientId]);
 
   const handleMouseEnter = () => {
     timerRef.current = setTimeout(() => setShowPreview(true), 300);
@@ -16,24 +39,18 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ 
     setShowPreview(false);
   };
 
-  useEffect(() => {
-    if (showPreview && data.clientId) {
-      const token = localStorage.getItem('access_token');
-      fetch(`${config.apiUrl}/monitoring/clients/${data.clientId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-        .then(res => res.json())
-        .then(data => setClientData(data))
-        .catch(console.error);
-    }
-  }, [showPreview, data.clientId]);
-
-  // Определяем цвет рамки
   const getBorderColor = () => {
-    if (!data.clientId) return 'var(--warning)'; // не привязан — жёлтая
-    if (clientData && !clientData.is_active) return 'var(--danger)'; // офлайн — красная
-    if (clientData && clientData.is_active) return 'var(--success)'; // онлайн — зелёная
-    return 'var(--warning)'; // ещё не загрузили — жёлтая
+    if (!data.clientId) return 'var(--warning)';
+    if (!clientData) return 'var(--warning)';
+    if (!clientData.is_active) return 'var(--danger)';
+    return 'var(--success)';
+  };
+
+  // Проверка актуальности метрик (не старше 2 минут)
+  const isMetricsFresh = () => {
+    if (!clientData?.latest_metrics?.timestamp) return false;
+    const age = Date.now() - new Date(clientData.latest_metrics.timestamp).getTime();
+    return age < 120000; // 2 минуты
   };
 
   return (
@@ -92,7 +109,7 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ 
             </div>
           )}
           
-          {clientData.latest_metrics && (
+          {clientData.is_active && isMetricsFresh() && clientData.latest_metrics && (
             <>
               <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
                 <div>
@@ -129,6 +146,12 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ 
                 {new Date(clientData.latest_metrics.timestamp).toLocaleTimeString('ru-RU')}
               </div>
             </>
+          )}
+
+          {!clientData.is_active && (
+            <div style={{ fontSize: 11, color: 'var(--danger)', marginTop: 6 }}>
+              Устройство не в сети
+            </div>
           )}
         </div>
       )}
