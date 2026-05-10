@@ -1,8 +1,8 @@
-import React, { memo, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Client } from '../../types';
 import { config } from '../../config';
 
-export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ data, selected }) => {
+export const ComputerNode: React.FC<{ data: any; selected: boolean }> = (({ data, selected }) => {
   const [showPreview, setShowPreview] = useState(false);
   const [clientData, setClientData] = useState<Client | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
