@@ -1,4 +1,4 @@
-import React, { useState, memo, useMemo, useCallback } from 'react';
+import React, { useState, memo, useMemo } from 'react';
 import {
   PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid
@@ -13,19 +13,6 @@ const DEFAULT_COLORS = [
   '#2980b9', '#f1c40f', '#e91e63', '#00bcd4', '#ff5722',
 ];
 
-const PRESET_COLORS: Record<string, string> = {
-  'chrome': '#3498db',
-  'firefox': '#e67e22',
-  'edge': '#2ecc71',
-  'discord': '#7289da',
-  'code': '#007acc',
-  'explorer': '#f39c12',
-  'spotify': '#1db954',
-  'node': '#339933',
-  'python': '#3776ab',
-  'svchost': '#95a5a6',
-};
-
 interface ProcessesChartProps {
   processes: Process[];
   totalCount: number;
@@ -36,29 +23,34 @@ interface ChartDataItem {
   cpu: number;
   memory: number;
   pid: number;
-  color?: string;
 }
 
-const colorCache = new Map<string, string>();
-let colorCounter = 0;
-
-const getAutoColor = (name: string): string => {
-  const lower = name.toLowerCase().trim();
-  for (const [key, color] of Object.entries(PRESET_COLORS)) {
-    if (lower.includes(key)) return color;
+const loadSavedColors = (): Record<string, string> => {
+  try {
+    const saved = localStorage.getItem('process-colors');
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
   }
-  if (colorCache.has(lower)) return colorCache.get(lower)!;
-  const color = DEFAULT_COLORS[colorCounter % DEFAULT_COLORS.length];
-  colorCounter++;
-  colorCache.set(lower, color);
-  return color;
+};
+
+const saveColors = (colors: Record<string, string>) => {
+  localStorage.setItem('process-colors', JSON.stringify(colors));
+};
+
+const colorIndexMap = new Map<string, number>();
+let globalColorIndex = 0;
+
+const getColorForIndex = (index: number): string => {
+  return DEFAULT_COLORS[index % DEFAULT_COLORS.length];
 };
 
 export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, totalCount }) => {
   const [viewMode, setViewMode] = useState<'bar' | 'pie' | 'donut'>('bar');
   const [metricType, setMetricType] = useState<'cpu' | 'memory'>('cpu');
   const [groupMode, setGroupMode] = useState<'separate' | 'grouped'>('separate');
-  const [customColors, setCustomColors] = useState<Record<string, string>>({});
+  const [processLimit, setProcessLimit] = useState(10);
+  const [savedColors, setSavedColors] = useState<Record<string, string>>(loadSavedColors);
   const [isNarrow, setIsNarrow] = useState(window.innerWidth < 600);
 
   React.useEffect(() => {
@@ -74,9 +66,25 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
     );
   }, [processes]);
 
+  const uniqueNames = useMemo(() => {
+    const names = new Set<string>();
+    for (const p of filteredProcesses) {
+      const name = (p.name || 'Unknown').length > 25 ? (p.name || 'Unknown').substring(0, 25) + '...' : (p.name || 'Unknown');
+      names.add(name);
+    }
+    return Array.from(names);
+  }, [filteredProcesses]);
+
+  const getColor = (name: string): string => {
+    if (savedColors[name]) return savedColors[name];
+    if (!colorIndexMap.has(name)) {
+      colorIndexMap.set(name, globalColorIndex++);
+    }
+    return getColorForIndex(colorIndexMap.get(name)!);
+  };
+
   const chartData: ChartDataItem[] = useMemo(() => {
     if (groupMode === 'grouped') {
-      // Режим 2: группировка одинаковых имён
       const grouped = new Map<string, { cpu: number; memory: number; pids: number[] }>();
       
       for (const p of filteredProcesses) {
@@ -91,31 +99,36 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
         }
       }
       
-      const result: ChartDataItem[] = Array.from(grouped.entries())
+      const result = Array.from(grouped.entries())
         .map(([name, data]) => ({
           name,
           cpu: Math.round(data.cpu * 10) / 10,
           memory: Math.round(data.memory * 10) / 10,
           pid: data.pids[0] || 0,
-          color: customColors[name] || getAutoColor(name),
         }))
-        .sort((a, b) => b.cpu - a.cpu)
-        .slice(0, 10);
-      
+        .sort((a, b) => b.cpu - a.cpu);
+
+      if (result.length > processLimit) {
+        const otherCpu = result.slice(processLimit).reduce((sum, p) => sum + p.cpu, 0);
+        const otherMem = result.slice(processLimit).reduce((sum, p) => sum + p.memory, 0);
+        return [
+          ...result.slice(0, processLimit),
+          { name: 'Остальные', cpu: Math.round(otherCpu * 10) / 10, memory: Math.round(otherMem * 10) / 10, pid: 0 }
+        ];
+      }
       return result;
     }
     
-    // Режим 1: все процессы раздельно
-    const topProcesses: ChartDataItem[] = filteredProcesses.slice(0, 10).map(p => ({
+    const topProcesses: ChartDataItem[] = filteredProcesses.slice(0, processLimit).map(p => ({
       name: (p.name || 'Unknown').length > 25 ? (p.name || 'Unknown').substring(0, 25) + '...' : (p.name || 'Unknown'),
       cpu: Math.round((p.cpu || 0) * 10) / 10,
       memory: Math.round((p.memory || 0) * 10) / 10,
       pid: p.pid || 0,
     }));
 
-    if (filteredProcesses.length > 10) {
-      const otherCpu = filteredProcesses.slice(10).reduce((sum, p) => sum + (p.cpu || 0), 0);
-      const otherMem = filteredProcesses.slice(10).reduce((sum, p) => sum + (p.memory || 0), 0);
+    if (filteredProcesses.length > processLimit) {
+      const otherCpu = filteredProcesses.slice(processLimit).reduce((sum, p) => sum + (p.cpu || 0), 0);
+      const otherMem = filteredProcesses.slice(processLimit).reduce((sum, p) => sum + (p.memory || 0), 0);
       topProcesses.push({
         name: 'Остальные',
         cpu: Math.round(otherCpu * 10) / 10,
@@ -125,16 +138,17 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
     }
 
     return topProcesses;
-  }, [filteredProcesses, groupMode, customColors]);
+  }, [filteredProcesses, groupMode, processLimit]);
 
   const handleColorChange = (name: string, color: string) => {
-    setCustomColors(prev => ({ ...prev, [name]: color }));
+    const updated = { ...savedColors, [name]: color };
+    setSavedColors(updated);
+    saveColors(updated);
   };
 
   const getBarColor = (entry: ChartDataItem): string => {
     if (entry.name === 'Остальные') return '#bdc3c7';
-    if (groupMode === 'grouped' && entry.color) return entry.color;
-    return getAutoColor(entry.name);
+    return getColor(entry.name);
   };
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -198,7 +212,7 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
       return (
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
-            <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={isNarrow ? undefined : renderPieLabel} outerRadius={isNarrow ? 70 : 100} fill="#8884d8" dataKey={metricType} nameKey="name">
+            <Pie data={chartData} cx="50%" cy="50%" isAnimationActive={false} labelLine={false} label={isNarrow ? undefined : renderPieLabel} outerRadius={isNarrow ? 70 : 100} fill="#8884d8" dataKey={metricType} nameKey="name">
               {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={getBarColor(entry)} />
               ))}
@@ -213,7 +227,7 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
     return (
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>
-          <Pie data={chartData} cx="50%" cy="50%" innerRadius={40} outerRadius={isNarrow ? 70 : 100} labelLine={false} label={isNarrow ? undefined : renderPieLabel} fill="#8884d8" dataKey={metricType} nameKey="name">
+          <Pie data={chartData} cx="50%" cy="50%" isAnimationActive={false} innerRadius={40} outerRadius={isNarrow ? 70 : 100} labelLine={false} label={isNarrow ? undefined : renderPieLabel} fill="#8884d8" dataKey={metricType} nameKey="name">
             {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={getBarColor(entry)} />
             ))}
@@ -230,6 +244,29 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
       <div className={styles.chartHeader}>
         <h3>Процессы (активных: {filteredProcesses.length}, всего: {totalCount})</h3>
         <div className={styles.chartControls}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8em' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>Показать:</span>
+            <input
+              type="number"
+              value={processLimit}
+              onChange={e => {
+                const v = parseInt(e.target.value);
+                if (!isNaN(v) && v >= 1 && v <= 10) setProcessLimit(v);
+              }}
+              min={1}
+              max={10}
+              style={{
+                width: 40,
+                height: 28,
+                padding: '2px 4px',
+                border: '1px solid var(--border-input)',
+                borderRadius: 3,
+                background: 'var(--bg-input)',
+                color: 'var(--text-primary)',
+                textAlign: 'center',
+              }}
+            />
+          </div>
           <div className={styles.metricToggle}>
             <button className={`${styles.smallButton} ${metricType === 'cpu' ? styles.active : ''}`} onClick={() => setMetricType('cpu')}>CPU</button>
             <button className={`${styles.smallButton} ${metricType === 'memory' ? styles.active : ''}`} onClick={() => setMetricType('memory')}>Память</button>
@@ -246,30 +283,31 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
         </div>
       </div>
       
-      {/* Палитра цветов для группированного режима */}
-      {groupMode === 'grouped' && chartData.length > 0 && (
+      {uniqueNames.length > 0 && (
         <div style={{
           display: 'flex',
           flexWrap: 'wrap',
           gap: 6,
-          marginBottom: 12,
-          padding: '8px 0',
+          marginBottom: 10,
+          padding: '6px 0',
         }}>
-          {chartData.filter(d => d.name !== 'Остальные').map(d => (
-            <div key={d.name} style={{
+          {uniqueNames.map(name => (
+            <div key={name} style={{
               display: 'flex',
               alignItems: 'center',
               gap: 4,
-              fontSize: '0.75em',
+              fontSize: '0.72em',
             }}>
               <input
                 type="color"
-                value={d.color || getAutoColor(d.name)}
-                onChange={e => handleColorChange(d.name, e.target.value)}
-                style={{ width: 18, height: 18, border: 'none', cursor: 'pointer', padding: 0 }}
-                title={d.name}
+                value={savedColors[name] || getColor(name)}
+                onChange={e => handleColorChange(name, e.target.value)}
+                style={{ width: 16, height: 16, border: 'none', cursor: 'pointer', padding: 0 }}
+                title={name}
               />
-              <span style={{ color: 'var(--text-secondary)' }}>{d.name}</span>
+              <span style={{ color: 'var(--text-secondary)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {name}
+              </span>
             </div>
           ))}
         </div>

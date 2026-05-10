@@ -59,7 +59,7 @@ export const CpuCoresChart: React.FC<{ cores: number[] }> = memo(({ cores }) => 
             label={{ value: '%', position: 'insideLeft', fontSize: 12 }}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Bar dataKey="usage" name="Загрузка %" radius={[4, 4, 0, 0]}>
+          <Bar dataKey="usage" name="Загрузка %" radius={[4, 4, 0, 0]} isAnimationActive={false}>
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={getColor(entry.usage)} />
             ))}
