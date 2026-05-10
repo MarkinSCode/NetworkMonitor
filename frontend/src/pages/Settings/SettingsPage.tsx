@@ -81,7 +81,7 @@ export const SettingsPage: React.FC = () => {
       <div className={styles.card}>
         <h3>Доступ</h3>
         <div className={styles.row}>
-          <span className={styles.label}>Открыть доступ не-администраторам:</span>
+          <span className={styles.label}>Открыть доступ не администраторам:</span>
           <label className={styles.switch}>
             <input type="checkbox" checked={isOpen} onChange={e => setIsOpen(e.target.checked)} />
             <span className={styles.slider}></span>
@@ -99,7 +99,7 @@ export const SettingsPage: React.FC = () => {
           <code>{window.location.origin}</code>
         </div>
         <div className={styles.row}>
-          <span className={styles.label}>Адрес для агентов (WebSocket):</span>
+          <span className={styles.label}>Адрес для агентов:</span>
           <code>{config.apiUrl.replace(/^https?:/, 'wss:').replace('/api/v1', '/ws/agent')}</code>
         </div>
       </div>
