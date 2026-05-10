@@ -210,6 +210,7 @@ class MetricsService:
         return clients
     
     def get_client_detail(self, client_id: int) -> Optional[Client]:
+        self.update_clients_status()
         client = self.db.query(Client).filter(Client.id == client_id).first()
         
         if client:
