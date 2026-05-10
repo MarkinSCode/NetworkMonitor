@@ -6,6 +6,7 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ 
   const [showPreview, setShowPreview] = useState(false);
   const [clientData, setClientData] = useState<Client | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const handleMouseEnter = () => {
     timerRef.current = setTimeout(() => setShowPreview(true), 300);
@@ -16,17 +17,39 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ 
     setShowPreview(false);
   };
 
-  useEffect(() => {
-    if (showPreview && data.clientId) {
+  // Загружаем данные клиента
+  const fetchClientData = async () => {
+    if (data.clientId) {
       const token = localStorage.getItem('access_token');
-      fetch(`${config.apiUrl}/monitoring/clients/${data.clientId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-        .then(res => res.json())
-        .then(data => setClientData(data))
-        .catch(console.error);
+      try {
+        const res = await fetch(`${config.apiUrl}/monitoring/clients/${data.clientId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data_resp = await res.json();
+        setClientData(data_resp);
+      } catch (error) {
+        console.error('Ошибка загрузки данных клиента:', error);
+      }
     }
-  }, [showPreview, data.clientId]);
+  };
+
+  // Загружаем данные при монтировании и при изменении clientId
+  useEffect(() => {
+    fetchClientData();
+  }, [data.clientId]);
+
+  // Обновляем данные по интервалу (каждые 10 секунд)
+  useEffect(() => {
+    if (data.clientId) {
+      intervalRef.current = setInterval(() => {
+        fetchClientData();
+      }, 1000);
+
+      return () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+      };
+    }
+  }, [data.clientId]);
 
   // Определяем цвет рамки
   const getBorderColor = () => {
