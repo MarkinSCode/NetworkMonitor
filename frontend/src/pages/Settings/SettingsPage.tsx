@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback  } from 'react';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import styles from './Settings.module.css';
 import { config } from '../../config';
 
@@ -53,7 +54,7 @@ export const SettingsPage: React.FC = () => {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  if (!settings) return <div>Загрузка...</div>;
+  if (!settings) return <LoadingSpinner />;
 
   return (
     <div className={styles.container}>

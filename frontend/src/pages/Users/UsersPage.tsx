@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styles from './Users.module.css';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { config } from '../../config';
 interface User {
   id: number;
@@ -61,7 +62,7 @@ export const UsersPage: React.FC = () => {
     u.phone.includes(filter)
   );
 
-  if (isLoading) return <div>Загрузка...</div>;
+  if (isLoading) return <LoadingSpinner />;
 
   return (
     <div className={styles.container}>
