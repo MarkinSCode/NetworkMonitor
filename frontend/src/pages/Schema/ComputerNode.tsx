@@ -1,35 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { memo, useState, useEffect, useRef } from 'react';
 import { Client } from '../../types';
 import { config } from '../../config';
 
-export const ComputerNode: React.FC<{ data: any; selected: boolean }> = ({ data, selected }) => {
+
+export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ data, selected }) => {
   const [showPreview, setShowPreview] = useState(false);
   const [clientData, setClientData] = useState<Client | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [, forceUpdate] = useState(0);
-
-  useEffect(() => {
-    if (!data.clientId) return;
-
-    const fetchData = () => {
-      const token = localStorage.getItem('access_token');
-      fetch(`${config.apiUrl}/monitoring/clients/${data.clientId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-        .then(res => res.json())
-        .then(data => {
-          setClientData(data);
-          forceUpdate(n => n + 1);
-        })
-        .catch(console.error);
-    };
-
-    fetchData();
-    const interval = setInterval(fetchData, 5000);
-
-    return () => clearInterval(interval);
-  }, [data.clientId]);
-
   const handleMouseEnter = () => {
     timerRef.current = setTimeout(() => setShowPreview(true), 300);
   };
@@ -38,19 +15,17 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = ({ data,
     if (timerRef.current) clearTimeout(timerRef.current);
     setShowPreview(false);
   };
-
-  const getBorderColor = () => {
-    if (!data.clientId) return 'var(--warning)';
-    if (!clientData) return 'var(--warning)';
-    if (!clientData.is_active) return 'var(--danger)';
-    return 'var(--success)';
-  };
-
-  const isMetricsFresh = () => {
-    if (!clientData?.latest_metrics?.timestamp) return false;
-    const age = Date.now() - new Date(clientData.latest_metrics.timestamp).getTime();
-    return age < 120000;
-  };
+  useEffect(() => {
+    if (showPreview && data.clientId) {
+      const token = localStorage.getItem('access_token');
+      fetch(`${config.apiUrl}/monitoring/clients/${data.clientId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => setClientData(data))
+        .catch(console.error);
+    }
+  }, [showPreview, data.clientId]);
 
   return (
     <div
@@ -60,8 +35,8 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = ({ data,
     >
       <div style={{
         padding: 8,
-        background: 'var(--bg-card)',
-        border: `2px solid ${getBorderColor()}`,
+        background: data.clientId ? 'var(--bg-card)' : 'var(--bg-card)',
+        border: data.clientId ? '2px solid var(--success)' : '2px solid var(--warning)',
         borderRadius: 8,
         minWidth: 80,
         textAlign: 'center',
@@ -83,12 +58,11 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = ({ data,
           transform: 'translateX(-50%)',
           zIndex: 100,
           marginTop: 8,
-          padding: 14,
-          minWidth: 210,
           background: 'var(--bg-card)',
           borderRadius: 8,
-          boxShadow: '0 4px 12px var(--shadow)',
-          border: '1px solid var(--border)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          padding: 12,
+          minWidth: 200,
           pointerEvents: 'none',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
@@ -108,34 +82,34 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = ({ data,
             </div>
           )}
           
-          {clientData.is_active && isMetricsFresh() && clientData.latest_metrics && (
+          {clientData.latest_metrics && (
             <>
-              <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+              <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
                 <div>
-                  <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>CPU</div>
+                  <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>CPU</div>
                   <div style={{ 
-                    fontSize: 16, fontWeight: 700,
-                    color: clientData.latest_metrics.cpu_percent > 90 ? '#e74c3c' :
-                           clientData.latest_metrics.cpu_percent > 70 ? '#f39c12' : '#2ecc71'
+                    fontSize: 14, fontWeight: 700,
+                    color: clientData.latest_metrics.cpu_percent > 90 ? 'var(--danger)' :
+                           clientData.latest_metrics.cpu_percent > 70 ? 'var(--warning)' : 'var(--success)'
                   }}>
                     {clientData.latest_metrics.cpu_percent}%
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>RAM</div>
+                  <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>RAM</div>
                   <div style={{ 
-                    fontSize: 16, fontWeight: 700,
-                    color: clientData.latest_metrics.memory_percent > 90 ? '#e74c3c' :
-                           clientData.latest_metrics.memory_percent > 80 ? '#f39c12' : '#3498db'
+                    fontSize: 14, fontWeight: 700,
+                    color: clientData.latest_metrics.memory_percent > 90 ? 'var(--danger)' :
+                           clientData.latest_metrics.memory_percent > 80 ? 'var(--warning)' : '#3498db'
                   }}>
                     {clientData.latest_metrics.memory_percent}%
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Диск</div>
+                  <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>Диск</div>
                   <div style={{ 
-                    fontSize: 16, fontWeight: 700,
-                    color: clientData.latest_metrics.disk_percent > 90 ? '#e74c3c' : '#9b59b6'
+                    fontSize: 14, fontWeight: 700,
+                    color: clientData.latest_metrics.disk_percent > 90 ? 'var(--danger)' : '#9b59b6'
                   }}>
                     {clientData.latest_metrics.disk_percent}%
                   </div>
@@ -146,14 +120,8 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = ({ data,
               </div>
             </>
           )}
-
-          {!clientData.is_active && (
-            <div style={{ fontSize: 11, color: 'var(--danger)', marginTop: 6 }}>
-              Устройство не в сети
-            </div>
-          )}
         </div>
       )}
     </div>
   );
-};
+});
