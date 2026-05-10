@@ -12,8 +12,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { ComputerNode } from './ComputerNode';
 import { ImageNode } from './ImageNode';
 import { AreaNode } from './AreaNode';
-import { PropertiesPanel } from './PropertiesPanel';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+import { PropertiesPanel } from './PropertiesPanel';
 import styles from './Schema.module.css';
 
 const nodeTypes: NodeTypes = {
