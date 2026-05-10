@@ -115,7 +115,7 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ 
             </div>
           )}
           
-          {clientData.latest_metrics && (
+          {clientData.is_active && clientData.latest_metrics && (
             <>
               <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
                 <div>
@@ -152,6 +152,11 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ 
                 {new Date(clientData.latest_metrics.timestamp).toLocaleTimeString('ru-RU')}
               </div>
             </>
+          )}
+          {!clientData.is_active && (
+            <div style={{ fontSize: 11, color: 'var(--danger)', marginTop: 6 }}>
+              Устройство не в сети
+            </div>
           )}
         </div>
       )}
