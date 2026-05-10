@@ -70,7 +70,7 @@ const FlowContent: React.FC<{
             Authorization: `Bearer ${token}`
           },
           body: JSON.stringify({ nodes: nodesToSave })
-        }).then(() => alert('Схема сохранена в БДвыа'))
+        }).then(() => alert('Схема сохранена в БД'))
           .catch(err => console.error('Ошибка сохранения:', err));
         
         return currentNodes;
