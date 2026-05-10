@@ -2,11 +2,11 @@ import React, { memo, useState, useEffect, useRef } from 'react';
 import { Client } from '../../types';
 import { config } from '../../config';
 
-
 export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ data, selected }) => {
   const [showPreview, setShowPreview] = useState(false);
   const [clientData, setClientData] = useState<Client | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleMouseEnter = () => {
     timerRef.current = setTimeout(() => setShowPreview(true), 300);
   };
@@ -15,6 +15,7 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ 
     if (timerRef.current) clearTimeout(timerRef.current);
     setShowPreview(false);
   };
+
   useEffect(() => {
     if (showPreview && data.clientId) {
       const token = localStorage.getItem('access_token');
@@ -27,6 +28,14 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ 
     }
   }, [showPreview, data.clientId]);
 
+  // Определяем цвет рамки
+  const getBorderColor = () => {
+    if (!data.clientId) return 'var(--warning)'; // не привязан — жёлтая
+    if (clientData && !clientData.is_active) return 'var(--danger)'; // офлайн — красная
+    if (clientData && clientData.is_active) return 'var(--success)'; // онлайн — зелёная
+    return 'var(--warning)'; // ещё не загрузили — жёлтая
+  };
+
   return (
     <div
       onMouseEnter={handleMouseEnter}
@@ -35,8 +44,8 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ 
     >
       <div style={{
         padding: 8,
-        background: data.clientId ? 'var(--bg-card)' : 'var(--bg-card)',
-        border: data.clientId ? '2px solid var(--success)' : '2px solid var(--warning)',
+        background: 'var(--bg-card)',
+        border: `2px solid ${getBorderColor()}`,
         borderRadius: 8,
         minWidth: 80,
         textAlign: 'center',
@@ -58,11 +67,12 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ 
           transform: 'translateX(-50%)',
           zIndex: 100,
           marginTop: 8,
+          padding: 14,
+          minWidth: 210,
           background: 'var(--bg-card)',
           borderRadius: 8,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          padding: 12,
-          minWidth: 200,
+          boxShadow: '0 4px 12px var(--shadow)',
+          border: '1px solid var(--border)',
           pointerEvents: 'none',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
@@ -84,32 +94,32 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ 
           
           {clientData.latest_metrics && (
             <>
-              <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
                 <div>
-                  <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>CPU</div>
+                  <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>CPU</div>
                   <div style={{ 
-                    fontSize: 14, fontWeight: 700,
-                    color: clientData.latest_metrics.cpu_percent > 90 ? 'var(--danger)' :
-                           clientData.latest_metrics.cpu_percent > 70 ? 'var(--warning)' : 'var(--success)'
+                    fontSize: 16, fontWeight: 700,
+                    color: clientData.latest_metrics.cpu_percent > 90 ? '#e74c3c' :
+                           clientData.latest_metrics.cpu_percent > 70 ? '#f39c12' : '#2ecc71'
                   }}>
                     {clientData.latest_metrics.cpu_percent}%
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>RAM</div>
+                  <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>RAM</div>
                   <div style={{ 
-                    fontSize: 14, fontWeight: 700,
-                    color: clientData.latest_metrics.memory_percent > 90 ? 'var(--danger)' :
-                           clientData.latest_metrics.memory_percent > 80 ? 'var(--warning)' : '#3498db'
+                    fontSize: 16, fontWeight: 700,
+                    color: clientData.latest_metrics.memory_percent > 90 ? '#e74c3c' :
+                           clientData.latest_metrics.memory_percent > 80 ? '#f39c12' : '#3498db'
                   }}>
                     {clientData.latest_metrics.memory_percent}%
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>Диск</div>
+                  <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Диск</div>
                   <div style={{ 
-                    fontSize: 14, fontWeight: 700,
-                    color: clientData.latest_metrics.disk_percent > 90 ? 'var(--danger)' : '#9b59b6'
+                    fontSize: 16, fontWeight: 700,
+                    color: clientData.latest_metrics.disk_percent > 90 ? '#e74c3c' : '#9b59b6'
                   }}>
                     {clientData.latest_metrics.disk_percent}%
                   </div>
