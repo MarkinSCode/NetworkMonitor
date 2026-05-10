@@ -1,4 +1,4 @@
-import React, { useState, memo, useMemo } from 'react';
+import React, { useState, memo, useMemo, useCallback } from 'react';
 import {
   PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid
@@ -13,22 +13,17 @@ const DEFAULT_COLORS = [
   '#2980b9', '#f1c40f', '#e91e63', '#00bcd4', '#ff5722',
 ];
 
-// Предопределённые цвета для известных процессов
-const PROCESS_COLORS: Record<string, string> = {
+const PRESET_COLORS: Record<string, string> = {
   'chrome': '#3498db',
   'firefox': '#e67e22',
   'edge': '#2ecc71',
   'discord': '#7289da',
-  'telegram': '#0088cc',
   'code': '#007acc',
   'explorer': '#f39c12',
   'spotify': '#1db954',
   'node': '#339933',
   'python': '#3776ab',
-  'java': '#e76f00',
   'svchost': '#95a5a6',
-  'system': '#e74c3c',
-  'taskmgr': '#2c3e50',
 };
 
 interface ProcessesChartProps {
@@ -41,34 +36,29 @@ interface ChartDataItem {
   cpu: number;
   memory: number;
   pid: number;
+  color?: string;
 }
 
-// Хранилище назначенных цветов (сохраняется между рендерами)
-const colorMap = new Map<string, string>();
-let colorIndex = 0;
+const colorCache = new Map<string, string>();
+let colorCounter = 0;
 
-const getColorForProcess = (name: string): string => {
-  const lowerName = name.toLowerCase().trim();
-  
-  // Проверяем предопределённые цвета
-  for (const [key, color] of Object.entries(PROCESS_COLORS)) {
-    if (lowerName.includes(key)) return color;
+const getAutoColor = (name: string): string => {
+  const lower = name.toLowerCase().trim();
+  for (const [key, color] of Object.entries(PRESET_COLORS)) {
+    if (lower.includes(key)) return color;
   }
-  
-  // Проверяем уже назначенные цвета
-  if (colorMap.has(lowerName)) return colorMap.get(lowerName)!;
-  
-  // Назначаем новый цвет
-  const color = DEFAULT_COLORS[colorIndex % DEFAULT_COLORS.length];
-  colorIndex++;
-  colorMap.set(lowerName, color);
-  
+  if (colorCache.has(lower)) return colorCache.get(lower)!;
+  const color = DEFAULT_COLORS[colorCounter % DEFAULT_COLORS.length];
+  colorCounter++;
+  colorCache.set(lower, color);
   return color;
 };
 
 export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, totalCount }) => {
   const [viewMode, setViewMode] = useState<'bar' | 'pie' | 'donut'>('bar');
   const [metricType, setMetricType] = useState<'cpu' | 'memory'>('cpu');
+  const [groupMode, setGroupMode] = useState<'separate' | 'grouped'>('separate');
+  const [customColors, setCustomColors] = useState<Record<string, string>>({});
   const [isNarrow, setIsNarrow] = useState(window.innerWidth < 600);
 
   React.useEffect(() => {
@@ -85,6 +75,37 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
   }, [processes]);
 
   const chartData: ChartDataItem[] = useMemo(() => {
+    if (groupMode === 'grouped') {
+      // Режим 2: группировка одинаковых имён
+      const grouped = new Map<string, { cpu: number; memory: number; pids: number[] }>();
+      
+      for (const p of filteredProcesses) {
+        const name = (p.name || 'Unknown').length > 25 ? (p.name || 'Unknown').substring(0, 25) + '...' : (p.name || 'Unknown');
+        const existing = grouped.get(name);
+        if (existing) {
+          existing.cpu += (p.cpu || 0);
+          existing.memory += (p.memory || 0);
+          existing.pids.push(p.pid || 0);
+        } else {
+          grouped.set(name, { cpu: p.cpu || 0, memory: p.memory || 0, pids: [p.pid || 0] });
+        }
+      }
+      
+      const result: ChartDataItem[] = Array.from(grouped.entries())
+        .map(([name, data]) => ({
+          name,
+          cpu: Math.round(data.cpu * 10) / 10,
+          memory: Math.round(data.memory * 10) / 10,
+          pid: data.pids[0] || 0,
+          color: customColors[name] || getAutoColor(name),
+        }))
+        .sort((a, b) => b.cpu - a.cpu)
+        .slice(0, 10);
+      
+      return result;
+    }
+    
+    // Режим 1: все процессы раздельно
     const topProcesses: ChartDataItem[] = filteredProcesses.slice(0, 10).map(p => ({
       name: (p.name || 'Unknown').length > 25 ? (p.name || 'Unknown').substring(0, 25) + '...' : (p.name || 'Unknown'),
       cpu: Math.round((p.cpu || 0) * 10) / 10,
@@ -104,7 +125,17 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
     }
 
     return topProcesses;
-  }, [filteredProcesses]);
+  }, [filteredProcesses, groupMode, customColors]);
+
+  const handleColorChange = (name: string, color: string) => {
+    setCustomColors(prev => ({ ...prev, [name]: color }));
+  };
+
+  const getBarColor = (entry: ChartDataItem): string => {
+    if (entry.name === 'Остальные') return '#bdc3c7';
+    if (groupMode === 'grouped' && entry.color) return entry.color;
+    return getAutoColor(entry.name);
+  };
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -155,7 +186,7 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey={metricType} name={metricType === 'cpu' ? 'CPU %' : 'Память %'} radius={[0, 4, 4, 0]}>
               {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.name === 'Остальные' ? '#bdc3c7' : getColorForProcess(entry.name)} />
+                <Cell key={`cell-${index}`} fill={getBarColor(entry)} />
               ))}
             </Bar>
           </BarChart>
@@ -169,7 +200,7 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
           <PieChart>
             <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={isNarrow ? undefined : renderPieLabel} outerRadius={isNarrow ? 70 : 100} fill="#8884d8" dataKey={metricType} nameKey="name">
               {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.name === 'Остальные' ? '#bdc3c7' : getColorForProcess(entry.name)} />
+                <Cell key={`cell-${index}`} fill={getBarColor(entry)} />
               ))}
             </Pie>
             <Tooltip content={<CustomTooltip />} />
@@ -184,7 +215,7 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
         <PieChart>
           <Pie data={chartData} cx="50%" cy="50%" innerRadius={40} outerRadius={isNarrow ? 70 : 100} labelLine={false} label={isNarrow ? undefined : renderPieLabel} fill="#8884d8" dataKey={metricType} nameKey="name">
             {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.name === 'Остальные' ? '#bdc3c7' : getColorForProcess(entry.name)} />
+              <Cell key={`cell-${index}`} fill={getBarColor(entry)} />
             ))}
           </Pie>
           <Tooltip content={<CustomTooltip />} />
@@ -203,6 +234,10 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
             <button className={`${styles.smallButton} ${metricType === 'cpu' ? styles.active : ''}`} onClick={() => setMetricType('cpu')}>CPU</button>
             <button className={`${styles.smallButton} ${metricType === 'memory' ? styles.active : ''}`} onClick={() => setMetricType('memory')}>Память</button>
           </div>
+          <div className={styles.metricToggle}>
+            <button className={`${styles.smallButton} ${groupMode === 'separate' ? styles.active : ''}`} onClick={() => setGroupMode('separate')}>Раздельно</button>
+            <button className={`${styles.smallButton} ${groupMode === 'grouped' ? styles.active : ''}`} onClick={() => setGroupMode('grouped')}>Группировать</button>
+          </div>
           <div className={styles.viewToggle}>
             <button className={`${styles.smallButton} ${viewMode === 'bar' ? styles.active : ''}`} onClick={() => setViewMode('bar')} title="Столбчатая">▊</button>
             <button className={`${styles.smallButton} ${viewMode === 'pie' ? styles.active : ''}`} onClick={() => setViewMode('pie')} title="Круговая">◯</button>
@@ -210,6 +245,36 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
           </div>
         </div>
       </div>
+      
+      {/* Палитра цветов для группированного режима */}
+      {groupMode === 'grouped' && chartData.length > 0 && (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 6,
+          marginBottom: 12,
+          padding: '8px 0',
+        }}>
+          {chartData.filter(d => d.name !== 'Остальные').map(d => (
+            <div key={d.name} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: '0.75em',
+            }}>
+              <input
+                type="color"
+                value={d.color || getAutoColor(d.name)}
+                onChange={e => handleColorChange(d.name, e.target.value)}
+                style={{ width: 18, height: 18, border: 'none', cursor: 'pointer', padding: 0 }}
+                title={d.name}
+              />
+              <span style={{ color: 'var(--text-secondary)' }}>{d.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      
       {renderChart()}
     </div>
   );
