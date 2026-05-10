@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styles from './Roles.module.css';
 import { config } from '../../config';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+
 interface Role {
   id: number;
   name: string;
@@ -27,32 +28,30 @@ export const RolesPage: React.FC = () => {
   const token = localStorage.getItem('access_token');
 
   useEffect(() => {
-    fetchRoles();
-    fetchUsers();
     Promise.all([fetchRoles(), fetchUsers()]).finally(() => setIsLoading(false));
   }, []);
 
-    const fetchRoles = async () => {
+  const fetchRoles = async () => {
     try {
-        const res = await fetch(`${config.apiUrl}/roles/`, {
+      const res = await fetch(`${config.apiUrl}/roles/`, {
         headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) setRoles(await res.json());
+      });
+      if (res.ok) setRoles(await res.json());
     } catch (err) {
-        console.error('Ошибка загрузки ролей:', err);
+      console.error('Ошибка загрузки ролей:', err);
     }
-    };
+  };
 
-    const fetchUsers = async () => {
+  const fetchUsers = async () => {
     try {
-        const res = await fetch(`${config.apiUrl}/users/`, {
+      const res = await fetch(`${config.apiUrl}/users/`, {
         headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) setUsers(await res.json());
+      });
+      if (res.ok) setUsers(await res.json());
     } catch (err) {
-        console.error('Ошибка загрузки пользователей:', err);
+      console.error('Ошибка загрузки пользователей:', err);
     }
-    };
+  };
 
   const selectRole = async (role: Role) => {
     setSelectedRole(role);
@@ -75,6 +74,7 @@ export const RolesPage: React.FC = () => {
   };
 
   const deleteRole = async (roleId: number) => {
+    if (!window.confirm('Удалить роль?')) return;
     await fetch(`${config.apiUrl}/roles/${roleId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
@@ -139,7 +139,13 @@ export const RolesPage: React.FC = () => {
           {selectedRole ? (
             <>
               <h3>{selectedRole.name} — пользователи</h3>
+              {selectedRole.description && (
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9em', marginBottom: 15 }}>
+                  Описание: {selectedRole.description}
+                </p>
+              )}
               <div className={styles.userList}>
+                {roleUsers.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: '0.85em' }}>Нет пользователей</p>}
                 {roleUsers.map(u => (
                   <div key={u.id} className={styles.userItem}>
                     <span>{u.full_name} ({u.phone})</span>
@@ -150,6 +156,9 @@ export const RolesPage: React.FC = () => {
 
               <h4>Добавить пользователя</h4>
               <div className={styles.addList}>
+                {users.filter(u => !roleUsers.find(ru => ru.id === u.id)).length === 0 && (
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85em' }}>Все пользователи уже в роли</p>
+                )}
                 {users.filter(u => !roleUsers.find(ru => ru.id === u.id)).map(u => (
                   <div key={u.id} className={styles.userItem}>
                     <span>{u.full_name} ({u.phone})</span>

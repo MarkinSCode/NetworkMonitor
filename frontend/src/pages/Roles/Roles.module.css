@@ -63,22 +63,24 @@
     gap: 4px;
 }
 
-.roleItem { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    padding: 10px; 
-    border-radius: 4px; 
-    cursor: pointer; 
-    color: var(--text-primary);
+.roleItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-primary);
+  border: 1px solid transparent;
+}
+
+.roleItem.selected {
+  background: var(--bg-hover);
+  border: 1px solid var(--accent);
 }
 
 .roleItem:hover { background: var(--bg-hover); }
 
-.roleItem.selected { 
-    background: var(--bg-hover); 
-    border: 1px solid var(--accent);
-}
 
 .count { 
     margin-left: 10px; 
@@ -142,7 +144,18 @@
     text-align: center; 
     padding: 40px;
 }
+.roleItem div {
+  flex: 1;
+  min-width: 0;
+}
 
+.roleItem strong {
+  word-break: break-word;
+}
+.roleItem div[style] {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
 @media (max-width: 768px) {
     .layout {
         flex-direction: column;
