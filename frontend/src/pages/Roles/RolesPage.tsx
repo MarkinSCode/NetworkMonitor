@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './Roles.module.css';
 import { config } from '../../config';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 interface Role {
   id: number;
   name: string;
@@ -101,7 +102,7 @@ export const RolesPage: React.FC = () => {
     fetchRoles();
   };
 
-  if (isLoading) return <div>Загрузка...</div>;
+  if (isLoading) return <LoadingSpinner />;
 
   return (
     <div className={styles.container}>
