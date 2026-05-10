@@ -6,10 +6,30 @@ import {
 import { Process } from '../../types';
 import styles from './Monitoring.module.css';
 
-const COLORS = [
+const DEFAULT_COLORS = [
   '#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6',
   '#1abc9c', '#e67e22', '#34495e', '#7f8c8d', '#2c3e50',
+  '#27ae60', '#c0392b', '#8e44ad', '#16a085', '#d35400',
+  '#2980b9', '#f1c40f', '#e91e63', '#00bcd4', '#ff5722',
 ];
+
+// Предопределённые цвета для известных процессов
+const PROCESS_COLORS: Record<string, string> = {
+  'chrome': '#3498db',
+  'firefox': '#e67e22',
+  'edge': '#2ecc71',
+  'discord': '#7289da',
+  'telegram': '#0088cc',
+  'code': '#007acc',
+  'explorer': '#f39c12',
+  'spotify': '#1db954',
+  'node': '#339933',
+  'python': '#3776ab',
+  'java': '#e76f00',
+  'svchost': '#95a5a6',
+  'system': '#e74c3c',
+  'taskmgr': '#2c3e50',
+};
 
 interface ProcessesChartProps {
   processes: Process[];
@@ -22,6 +42,29 @@ interface ChartDataItem {
   memory: number;
   pid: number;
 }
+
+// Хранилище назначенных цветов (сохраняется между рендерами)
+const colorMap = new Map<string, string>();
+let colorIndex = 0;
+
+const getColorForProcess = (name: string): string => {
+  const lowerName = name.toLowerCase().trim();
+  
+  // Проверяем предопределённые цвета
+  for (const [key, color] of Object.entries(PROCESS_COLORS)) {
+    if (lowerName.includes(key)) return color;
+  }
+  
+  // Проверяем уже назначенные цвета
+  if (colorMap.has(lowerName)) return colorMap.get(lowerName)!;
+  
+  // Назначаем новый цвет
+  const color = DEFAULT_COLORS[colorIndex % DEFAULT_COLORS.length];
+  colorIndex++;
+  colorMap.set(lowerName, color);
+  
+  return color;
+};
 
 export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, totalCount }) => {
   const [viewMode, setViewMode] = useState<'bar' | 'pie' | 'donut'>('bar');
@@ -112,7 +155,7 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey={metricType} name={metricType === 'cpu' ? 'CPU %' : 'Память %'} radius={[0, 4, 4, 0]}>
               {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.name === 'Остальные' ? '#bdc3c7' : COLORS[index % COLORS.length]} />
+                <Cell key={`cell-${index}`} fill={entry.name === 'Остальные' ? '#bdc3c7' : getColorForProcess(entry.name)} />
               ))}
             </Bar>
           </BarChart>
@@ -126,7 +169,7 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
           <PieChart>
             <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={isNarrow ? undefined : renderPieLabel} outerRadius={isNarrow ? 70 : 100} fill="#8884d8" dataKey={metricType} nameKey="name">
               {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.name === 'Остальные' ? '#bdc3c7' : COLORS[index % COLORS.length]} />
+                <Cell key={`cell-${index}`} fill={entry.name === 'Остальные' ? '#bdc3c7' : getColorForProcess(entry.name)} />
               ))}
             </Pie>
             <Tooltip content={<CustomTooltip />} />
@@ -141,7 +184,7 @@ export const ProcessesChart: React.FC<ProcessesChartProps> = memo(({ processes, 
         <PieChart>
           <Pie data={chartData} cx="50%" cy="50%" innerRadius={40} outerRadius={isNarrow ? 70 : 100} labelLine={false} label={isNarrow ? undefined : renderPieLabel} fill="#8884d8" dataKey={metricType} nameKey="name">
             {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.name === 'Остальные' ? '#bdc3c7' : COLORS[index % COLORS.length]} />
+              <Cell key={`cell-${index}`} fill={entry.name === 'Остальные' ? '#bdc3c7' : getColorForProcess(entry.name)} />
             ))}
           </Pie>
           <Tooltip content={<CustomTooltip />} />
