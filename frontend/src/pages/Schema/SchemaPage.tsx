@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import ReactDOM from 'react-dom';
 import ReactFlow, {
   Node, Background, MiniMap, NodeTypes,
   useNodesState, ReactFlowProvider, useReactFlow,
@@ -30,7 +29,6 @@ const FlowContent: React.FC<{
 }> = ({ clients, selectedNode, setSelectedNode, isAdmin }) => {
   const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
   const reactFlowInstance = useReactFlow();
-  const [showSaved, setShowSaved] = useState(false);
 
   useEffect(() => {
     const loadSchema = async () => {
@@ -72,11 +70,7 @@ const FlowContent: React.FC<{
             Authorization: `Bearer ${token}`
           },
           body: JSON.stringify({ nodes: nodesToSave })
-        })
-          .then(() => {
-            setShowSaved(true);
-            setTimeout(() => setShowSaved(false), 2500);
-          })
+        }).then(() => alert('Схема сохранена в БДвыа'))
           .catch(err => console.error('Ошибка сохранения:', err));
         
         return currentNodes;
@@ -115,31 +109,31 @@ const FlowContent: React.FC<{
   }, [setNodes, setSelectedNode, isAdmin]);
 
   const updateAreaMembers = useCallback((nds: Node[]) => {
-    return nds.map(node => {
-      if (node.type !== 'area') return node;
-      const areaPoints = node.data.points || [];
-      if (areaPoints.length === 0) return node;
-      const minX = Math.min(...areaPoints.map((p: any) => p.x));
-      const minY = Math.min(...areaPoints.map((p: any) => p.y));
-      const maxX = Math.max(...areaPoints.map((p: any) => p.x));
-      const maxY = Math.max(...areaPoints.map((p: any) => p.y));
-      
-      const membersInArea = nds
-        .filter(n => n.type === 'computer' && n.id !== node.id)
-        .filter(n => {
-          const cx = n.position.x + 50;
-          const cy = n.position.y + 25;
-          return cx >= node.position.x + minX && cx <= node.position.x + maxX &&
-                cy >= node.position.y + minY && cy <= node.position.y + maxY;
-        });
-      
-      const memberIds = membersInArea.map(n => n.id);
-      const memberClientIds = membersInArea
-        .filter(n => n.data.clientId)
-        .map(n => n.data.clientId);
-      return { ...node, data: { ...node.data, memberIds, memberClientIds } };
-    });
-  }, []);
+      return nds.map(node => {
+        if (node.type !== 'area') return node;
+        const areaPoints = node.data.points || [];
+        if (areaPoints.length === 0) return node;
+        const minX = Math.min(...areaPoints.map((p: any) => p.x));
+        const minY = Math.min(...areaPoints.map((p: any) => p.y));
+        const maxX = Math.max(...areaPoints.map((p: any) => p.x));
+        const maxY = Math.max(...areaPoints.map((p: any) => p.y));
+        
+        const membersInArea = nds
+          .filter(n => n.type === 'computer' && n.id !== node.id)
+          .filter(n => {
+            const cx = n.position.x + 50;
+            const cy = n.position.y + 25;
+            return cx >= node.position.x + minX && cx <= node.position.x + maxX &&
+                  cy >= node.position.y + minY && cy <= node.position.y + maxY;
+          });
+        
+        const memberIds = membersInArea.map(n => n.id);
+        const memberClientIds = membersInArea
+          .filter(n => n.data.clientId)
+          .map(n => n.data.clientId);
+        return { ...node, data: { ...node.data, memberIds, memberClientIds } };
+      });
+    }, []);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     if (!isAdmin) return;
@@ -288,30 +282,6 @@ const FlowContent: React.FC<{
             isAdmin={isAdmin}
           />
         )
-      )}
-
-      {showSaved && ReactDOM.createPortal(
-        <div style={{
-          position: 'fixed',
-          bottom: 30,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'var(--success)',
-          color: 'white',
-          padding: '12px 24px',
-          borderRadius: 8,
-          fontSize: '0.95em',
-          fontWeight: 500,
-          zIndex: 10000,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-          animation: 'fadeInUp 0.3s ease',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-        }}>
-          ✅ Схема сохранена
-        </div>,
-        document.body
       )}
     </div>
   );
