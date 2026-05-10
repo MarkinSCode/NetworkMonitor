@@ -1,5 +1,6 @@
 import React, { memo, useState, useEffect, useRef } from 'react';
 import { Client } from '../../types';
+import { config } from '../../config';
 
 
 export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ data, selected }) => {
@@ -17,7 +18,7 @@ export const ComputerNode: React.FC<{ data: any; selected: boolean }> = memo(({ 
   useEffect(() => {
     if (showPreview && data.clientId) {
       const token = localStorage.getItem('access_token');
-      fetch(`http://localhost:8000/api/v1/monitoring/clients/${data.clientId}`, {
+      fetch(`${config.apiUrl}/monitoring/clients/${data.clientId}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(res => res.json())
