@@ -13,6 +13,7 @@ import { ComputerNode } from './ComputerNode';
 import { ImageNode } from './ImageNode';
 import { AreaNode } from './AreaNode';
 import { PropertiesPanel } from './PropertiesPanel';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import styles from './Schema.module.css';
 
 const nodeTypes: NodeTypes = {
@@ -309,7 +310,7 @@ export const SchemaPage: React.FC = () => {
     }
   };
 
-  if (isLoading) return <div>Загрузка...</div>;
+  if (isLoading) return <LoadingSpinner />;
 
   return (
     <div className={styles.container}>
